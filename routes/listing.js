@@ -6,12 +6,31 @@ const listingController = require("../controllers/listings.js")
 const multer  = require('multer')
 const {storage} = require("../cloudconfig.js");
 const upload = multer({ storage })
+const Listing = require("../models/listing");
 
 router.route("/")
 .get(wrapAsync(listingController.index))
 .post(isLoggedIn, validateListing,upload.single('listing[image]'),wrapAsync(listingController.createListing));
 
 router.get("/new",isLoggedIn,listingController.renderNewForm);
+
+router.get("/search", wrapAsync(async (req, res) => {
+  const { q } = req.query;
+  let listings = [];
+
+  if (q) {
+    const searchRegex = new RegExp(q, 'i');
+    listings = await Listing.find({
+      $or: [
+        { title: searchRegex },
+        { country: searchRegex },
+        { location: searchRegex }
+      ]
+    });
+  }
+
+  res.render("listings/index", { allListings: listings });
+}));
  
 router.route("/:id")
 .get(wrapAsync(listingController.show))
