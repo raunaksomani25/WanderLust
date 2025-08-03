@@ -29,7 +29,7 @@ router.get("/search", wrapAsync(async (req, res) => {
     });
   }
 
-  res.render("listings/index", { allListings: listings });
+  res.render("listings/index", { allListings: listings,, category: null });
 }));
  
 router.route("/:id")
