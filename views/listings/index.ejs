@@ -16,6 +16,17 @@
       opacity:1;
       cursor:pointer;
     }
+    .filter.active{
+      opacity:1;
+    }
+
+    .filter.active i {
+      color: #ff385c; 
+    }
+
+    .filter.active p {
+      font-weight: bold;
+    }
 
     .tax-info{
       display:none;
@@ -32,46 +43,75 @@
     }
   </style>
     <div id="filters">
-      <div class="filter">
-       <div> <i class="fa-solid fa-fire"></i></div>
-        <p>Trending</p>
-      </div>
-      <div class="filter">
-        <div> <i class="fa-solid fa-bed"></i></div>
-         <p>Rooms</p>
-       </div>
-        <div class="filter">
-         <div> <i class="fa-solid fa-mountain-city"></i></div>
-          <p>Iconic Cities</p>
-        </div>
-        <div class="filter">
-          <div> <i class="fa-solid fa-mountain"></i></div>
-           <p>Mountain</p>
-         </div>
-         <div class="filter">
-          <div> <i class="fa-brands fa-fort-awesome"></i></div>
-           <p>Castles</p>
-         </div>
-         <div class="filter">
-           <div> <i class="fa-solid fa-person-swimming"></i></div>
-            <p>Amazing Pools</p>
-          </div>
-          <div class="filter">
-            <div> <i class="fa-solid fa-tent"></i></i></div>
-             <p>Camping</p>
-           </div>
-           <div class="filter">
-            <div> <i class="fa-solid fa-cow"></i></div>
-             <p>Farms</p>
-           </div>
-           <div class="filter">
-             <div> <i class="fa-regular fa-snowflake"></i></div>
-              <p>Arctic</p>
-            </div>
-             <div class="filter">
-               <div> <i class="fa-solid fa-ship"></i></div>
-                <p>Boats</p>
-              </div>
+      <a href="/listings?category=Trending" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Trending' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-fire"></i></div>
+    <p>Trending</p>
+  </div>
+</a>
+
+<a href="/listings?category=Forests" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Forests' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-tree"></i></div>
+    <p>Forests</p>
+  </div>
+</a>
+
+<a href="/listings?category=Iconic Cities" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Iconic Cities' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-mountain-city"></i></div>
+    <p>Iconic Cities</p>
+  </div>
+</a>
+
+<a href="/listings?category=Mountain" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Mountain' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-mountain"></i></div>
+    <p>Mountain</p>
+  </div>
+</a>
+
+<a href="/listings?category=Castles" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Castles' ? 'active' : '' %>">
+    <div><i class="fa-brands fa-fort-awesome"></i></div>
+    <p>Castles</p>
+  </div>
+</a>
+
+<a href="/listings?category=Pools" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Pools' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-person-swimming"></i></div>
+    <p>Amazing Pools</p>
+  </div>
+</a>
+
+<a href="/listings?category=Camping" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Camping' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-tent"></i></div>
+    <p>Camping</p>
+  </div>
+</a>
+
+<a href="/listings?category=Farms" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Farms' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-cow"></i></div>
+    <p>Farms</p>
+  </div>
+</a>
+
+<a href="/listings?category=Arctic" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Arctic' ? 'active' : '' %>">
+    <div><i class="fa-regular fa-snowflake"></i></div>
+    <p>Arctic</p>
+  </div>
+</a>
+
+<a href="/listings?category=Boats" style="text-decoration: none; color: inherit;">
+  <div class="filter <%= category === 'Boats' ? 'active' : '' %>">
+    <div><i class="fa-solid fa-ship"></i></div>
+    <p>Boats</p>
+  </div>
+</a>
             <div class="tax-toggle ">
               <div class="form-check-reverse form-switch">
                 <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
