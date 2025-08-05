@@ -129,3 +129,20 @@ body{
 #map { 
     height: 400px;
     width: 80vh ;}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange{
+  background-color: #fe424d !important;
+}
+
+.calendarconatainer{
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; 
+  align-items: center;     
+  gap: 1.5rem;
+  padding: 2rem;
+  text-align: center;
+}
