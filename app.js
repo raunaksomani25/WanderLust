@@ -14,6 +14,7 @@ const ejsmate = require("ejs-mate");
 const listings = require("./routes/listing.js");
 const reviews = require("./routes/review.js");
 const user = require("./routes/user.js");
+const bookingRoutes = require("./routes/booking.js");
 const session = require("express-session");
 const MongoStore = require('connect-mongo');
 const ExpressError=require("./utils/ExpressError.js");
@@ -97,6 +98,7 @@ app.use((req,res,next)=>{
 app.use("/listings",listings);
 app.use("/listings/:id/reviews",reviews);
 app.use("/",user);
+app.use("/", bookingRoutes);
 
 app.all("*",(req,res,next)=>{
     next(new ExpressError(404,"PAGE NOT FOUND"));
