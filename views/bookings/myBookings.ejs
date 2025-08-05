@@ -1,0 +1,28 @@
+<% layout("/layouts/boilerplate.ejs")  %>
+<h1>My Bookings</h1>
+
+<% if (bookings.length === 0) { %>
+  <p>You have no bookings yet.</p>
+<% } else { %>
+  <div class="my-bookings-list row row-cols-lg-3 row row-cols-md-1 row row-cols-sm-1 mt-1 ">
+    <% bookings.forEach(booking => { %>
+      <div class="booking-card ">
+        <h4><%= booking.listing.title %></h4>
+        <img src="<%=booking.listing.image.url%>" class="card-img-top show-img" alt="listing_image">
+        <p>From: <%= booking.checkIn.toDateString() %></p>
+        <p>To: <%= booking.checkOut.toDateString() %></p>
+        <!-- Optional cancel/edit links -->
+            <div class="d-flex gap-2 mt-2">
+        <form action="/bookings/<%= booking._id %>?_method=DELETE" method="POST" class="w-100">
+          <button class="btn btn-outline-danger w-100">Cancel Booking</button>
+        </form>
+        <form action="/bookings/<%= booking._id %>/edit" method="GET" class="w-100">
+          <button class="btn btn-outline-warning w-100">Edit Booking</button>
+        </form>
+      </div>
+
+
+      </div>
+    <% }) %>
+  </div>
+<% } %>
