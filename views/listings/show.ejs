@@ -2,6 +2,12 @@
 <script>
     const mapToken = "<%= process.env.MAP_TOKEN %>";
     const coordinates = <%- JSON.stringify(list.geometry.coordinates) %>;
+    const bookedDates = <%- JSON.stringify(list.bookings.map(b => {
+    return {
+      from: b.checkIn.toISOString().slice(0, 10),
+      to: b.checkOut.toISOString().slice(0, 10)
+    };
+  })) %>;
 </script>
 <body>
     <div class="row mt-3">
@@ -69,8 +75,9 @@
 
            <hr>
            <% } %>
-           <p><b>All Reviews</b></p>
+           <% if(list.reviews.length > 0) { %>
            <div class="row">
+            <p><b>All Reviews</b></p>
                 <% for(r of list.reviews) { %> 
                     <div class="card col-5 ms-3 py-2 mb-3">
                         <div class="card-body">
@@ -88,12 +95,34 @@
                 
                 <%}%>
             </div>
-        
+            <% } %>
         </div>
         <div class="col-6 offset-3 mb-3">
-                        <h3>Where you'll be</h3>
-                        <div id="map"></div>
-                </div>
+                <h3>Where you'll be</h3>
+                <div id="map"></div>
+        </div>
+        
+        <% if(currUser) { %>
+            <h3 class="col-8 offset-3 mb-3"><hr>Book this Listing</h3>
+
+        <div class="calendarconatainer">
+            <form action="/listings/<%= list._id %>/book" method="POST">
+        <label for="dateRange">Select Dates from the Calendar:</label>
+        <div id="calendar-wrapper" class="mb-3">
+            <input type="text" id="dateRange" class="form-control w-full mb-3" placeholder="Choose dates..." required >
+        </div>
+        <input type="hidden" name="checkIn" id="checkIn">
+        <input type="hidden" name="checkOut" id="checkOut">
+        <button type="submit" class="btn btn-success mt-2 mb-2">Book Now</button>
+        </form>
+        </div>
+        <% }else { %>
+                <h3 class="col-8 offset-3 mb-3"><hr>Please Log In to Book</h3>
+            <%}%>
+
+
         
 </body>
+
+
 <script src="/js/map.js"></script>
