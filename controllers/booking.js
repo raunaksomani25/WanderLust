@@ -1,31 +1,137 @@
 const Booking = require("../models/booking");
 const Listing = require("../models/listing");
+const mongoose = require("mongoose");
 
+// module.exports.createBooking = async (req, res) => {
+//   const { id } = req.params;
+//   const { checkIn, checkOut } = req.body;
+//   const listing = await Listing.findById(id).populate("bookings");
+//   const conflict = listing.bookings.some(booking =>
+//     (new Date(checkIn) < booking.checkOut && new Date(checkOut) > booking.checkIn)
+//   );
+//   if (conflict) {
+//     req.flash("error", "Selected dates are already booked.");
+//     return res.redirect(`/listings/${id}`);
+//   }
+//   const booking = new Booking({
+//     listing: id,
+//     user: req.user._id,
+//     checkIn,
+//     checkOut
+//   });
+//   listing.bookings.push(booking);
+//   await booking.save();
+//   await listing.save();
+
+//   req.flash("success", "Booking confirmed!");
+//   res.redirect(`/listings/${id}`);
+// };
+function normalizeDate(dateStr) {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
 
 module.exports.createBooking = async (req, res) => {
-  const { id } = req.params;
   const { checkIn, checkOut } = req.body;
-  const listing = await Listing.findById(id).populate("bookings");
-  const conflict = listing.bookings.some(booking =>
-    (new Date(checkIn) < booking.checkOut && new Date(checkOut) > booking.checkIn)
-  );
-  if (conflict) {
-    req.flash("error", "Selected dates are already booked.");
-    return res.redirect(`/listings/${id}`);
-  }
-  const booking = new Booking({
-    listing: id,
-    user: req.user._id,
-    checkIn,
-    checkOut
-  });
-  listing.bookings.push(booking);
-  await booking.save();
-  await listing.save();
+  const userId = req.user?._id;
+  const listingId = req.params.id; 
 
-  req.flash("success", "Booking confirmed!");
-  res.redirect(`/listings/${id}`);
+  if (!listingId) {
+    req.flash("error", "Listing ID is required");
+    return res.redirect("back");
+  }
+
+  if (!userId) {
+    req.flash("error", "You must be logged in to make a booking");
+    return res.redirect(`/listings/${listingId}`);
+  }
+  const checkInDate = normalizeDate(checkIn);
+  const checkOutDate = normalizeDate(checkOut);
+
+  let session;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const overlappingBooking = await Booking.findOne(
+      {
+        listing: listingId,
+        $or: [
+          {
+            checkIn: { $lt: checkOutDate },
+            checkOut: { $gt: checkInDate }
+          }
+        ]
+      },
+      null,
+      { session }
+    );
+
+    if (overlappingBooking) {
+      await session.abortTransaction();
+      session.endSession();
+      req.flash("error", "Listing already booked for selected dates");
+      return res.redirect(`/listings/${listingId}`);
+    }
+
+    const booking = new Booking({
+      listing: listingId,
+      user: userId,
+      checkIn: checkInDate,
+      checkOut: checkOutDate
+    });
+
+    await booking.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    req.flash("success", "Booking confirmed!");
+    return res.redirect(`/listings/${listingId}`);
+  } catch (err) {
+    if (session) session.endSession();
+
+    // Fallback (local Mongo without replica set)
+    if (err.message.includes("Transaction numbers are only allowed")) {
+      try {
+        const overlappingBooking = await Booking.findOne({
+          listing: listingId,
+          $or: [
+            {
+              checkIn: { $lt: checkOutDate },
+              checkOut: { $gt: checkInDate }
+            }
+          ]
+        });
+
+        if (overlappingBooking) {
+          req.flash("error", "Listing already booked for selected dates");
+          return res.redirect(`/listings/${listingId}`);
+        }
+
+        const booking = new Booking({
+          listing: listingId,
+          user: userId,
+          checkIn: checkInDate,
+          checkOut: checkOutDate
+        });
+
+        await booking.save();
+        req.flash("success", "Booking confirmed!");
+        return res.redirect(`/listings/${listingId}`);
+      } catch (fallbackErr) {
+        console.error("Fallback booking error:", fallbackErr);
+        req.flash("error", "Error creating booking. Please try again later.");
+        return res.redirect(`/listings/${listingId}`);
+      }
+    }
+
+    console.error("Transaction booking error:", err);
+    req.flash("error", "Something went wrong. Please try again.");
+    return res.redirect(`/listings/${listingId}`);
+  }
 };
+
 
 module.exports.viewBooking = async (req, res) => {
   const bookings = await Booking.find({ user: req.user._id }).populate("listing");
