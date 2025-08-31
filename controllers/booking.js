@@ -49,7 +49,8 @@ module.exports.createBooking = async (req, res) => {
   try {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-    const booking = await Booking.findOneAndUpdate(
+
+    const result = await Booking.findOneAndUpdate(
       {
         listing: listingId,
         $or: [
@@ -64,15 +65,16 @@ module.exports.createBooking = async (req, res) => {
           checkOut: checkOutDate
         }
       },
-      { new: true, upsert: true }
+      { new: true, upsert: true, rawResult: true }
     );
 
-    // If a booking already existed (no new insert)
-    if (!booking.isNew) {
+    // If a booking already exists, block new one
+    if (result.lastErrorObject.updatedExisting) {
       req.flash("error", "Listing already booked for selected dates");
       return res.redirect(`/listings/${listingId}`);
     }
 
+    // New booking successfully created
     req.flash("success", "Booking confirmed!");
     return res.redirect(`/listings/${listingId}`);
   } catch (err) {
@@ -81,6 +83,7 @@ module.exports.createBooking = async (req, res) => {
     return res.redirect(`/listings/${listingId}`);
   }
 };
+
 
 
 module.exports.viewBooking = async (req, res) => {
