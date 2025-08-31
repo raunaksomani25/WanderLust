@@ -70,10 +70,10 @@ module.exports.createBooking = async (req, res) => {
     );
 
     // If a booking already existed (no new insert)
-    if (!booking.isNew) {
-      req.flash("error", "Listing already booked for selected dates");
-      return res.redirect(`/listings/${listingId}`);
-    }
+    // if (!booking.isNew) {
+    //   req.flash("error", "Listing already booked for selected dates");
+    //   return res.redirect(`/listings/${listingId}`);
+    // }
 
     req.flash("success", "Booking confirmed!");
     return res.redirect(`/listings/${listingId}`);
