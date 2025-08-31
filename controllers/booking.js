@@ -31,6 +31,7 @@ function normalizeDate(dateStr) {
   date.setHours(0, 0, 0, 0);
   return date;
 }
+
 module.exports.createBooking = async (req, res) => {
   const { checkIn, checkOut } = req.body;
   const userId = req.user?._id;
@@ -50,7 +51,7 @@ module.exports.createBooking = async (req, res) => {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
-    const result = await Booking.findOneAndUpdate(
+    const booking = await Booking.findOneAndUpdate(
       {
         listing: listingId,
         $or: [
@@ -65,16 +66,15 @@ module.exports.createBooking = async (req, res) => {
           checkOut: checkOutDate
         }
       },
-      { new: true, upsert: true, rawResult: true }
+      { new: true, upsert: true }
     );
 
-    // If a booking already exists, block new one
-    if (result.lastErrorObject.updatedExisting) {
+    // If a booking already existed (no new insert)
+    if (!booking.isNew) {
       req.flash("error", "Listing already booked for selected dates");
       return res.redirect(`/listings/${listingId}`);
     }
 
-    // New booking successfully created
     req.flash("success", "Booking confirmed!");
     return res.redirect(`/listings/${listingId}`);
   } catch (err) {
@@ -83,6 +83,7 @@ module.exports.createBooking = async (req, res) => {
     return res.redirect(`/listings/${listingId}`);
   }
 };
+
 
 
 
