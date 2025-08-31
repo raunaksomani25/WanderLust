@@ -31,11 +31,10 @@ function normalizeDate(dateStr) {
   date.setHours(0, 0, 0, 0);
   return date;
 }
-
 module.exports.createBooking = async (req, res) => {
   const { checkIn, checkOut } = req.body;
   const userId = req.user?._id;
-  const listingId = req.params.id; 
+  const listingId = req.params.id;
 
   if (!listingId) {
     req.flash("error", "Listing ID is required");
@@ -43,91 +42,42 @@ module.exports.createBooking = async (req, res) => {
   }
 
   if (!userId) {
-    req.flash("error", "You must be logged in to make a booking");
-    return res.redirect(`/listings/${listingId}`);
+    req.flash("error", "You must be logged in to book");
+    return res.redirect("/login");
   }
-  const checkInDate = normalizeDate(checkIn);
-  const checkOutDate = normalizeDate(checkOut);
 
-  let session;
   try {
-    session = await mongoose.startSession();
-    session.startTransaction();
-
-    const overlappingBooking = await Booking.findOne(
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    const booking = await Booking.findOneAndUpdate(
       {
         listing: listingId,
         $or: [
-          {
-            checkIn: { $lt: checkOutDate },
-            checkOut: { $gt: checkInDate }
-          }
+          { checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } }
         ]
       },
-      null,
-      { session }
-    );
-
-    if (overlappingBooking) {
-      await session.abortTransaction();
-      session.endSession();
-      req.flash("error", "Listing already booked for selected dates");
-      return res.redirect(`/listings/${listingId}`);
-    }
-
-    const booking = new Booking({
-      listing: listingId,
-      user: userId,
-      checkIn: checkInDate,
-      checkOut: checkOutDate
-    });
-
-    await booking.save({ session });
-    await session.commitTransaction();
-    session.endSession();
-
-    req.flash("success", "Booking confirmed!");
-    return res.redirect(`/listings/${listingId}`);
-  } catch (err) {
-    if (session) session.endSession();
-
-    // Fallback (local Mongo without replica set)
-    if (err.message.includes("Transaction numbers are only allowed")) {
-      try {
-        const overlappingBooking = await Booking.findOne({
-          listing: listingId,
-          $or: [
-            {
-              checkIn: { $lt: checkOutDate },
-              checkOut: { $gt: checkInDate }
-            }
-          ]
-        });
-
-        if (overlappingBooking) {
-          req.flash("error", "Listing already booked for selected dates");
-          return res.redirect(`/listings/${listingId}`);
-        }
-
-        const booking = new Booking({
+      {
+        $setOnInsert: {
           listing: listingId,
           user: userId,
           checkIn: checkInDate,
           checkOut: checkOutDate
-        });
+        }
+      },
+      { new: true, upsert: true }
+    );
 
-        await booking.save();
-        req.flash("success", "Booking confirmed!");
-        return res.redirect(`/listings/${listingId}`);
-      } catch (fallbackErr) {
-        console.error("Fallback booking error:", fallbackErr);
-        req.flash("error", "Error creating booking. Please try again later.");
-        return res.redirect(`/listings/${listingId}`);
-      }
+    // If a booking already existed (no new insert)
+    if (!booking.isNew) {
+      req.flash("error", "Listing already booked for selected dates");
+      return res.redirect(`/listings/${listingId}`);
     }
 
-    console.error("Transaction booking error:", err);
-    req.flash("error", "Something went wrong. Please try again.");
+    req.flash("success", "Booking confirmed!");
+    return res.redirect(`/listings/${listingId}`);
+  } catch (err) {
+    console.error("Booking error:", err);
+    req.flash("error", "Something went wrong, please try again");
     return res.redirect(`/listings/${listingId}`);
   }
 };
