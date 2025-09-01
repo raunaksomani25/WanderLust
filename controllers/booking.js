@@ -41,7 +41,6 @@ module.exports.createBooking = async (req, res) => {
     req.flash("error", "Listing ID is required");
     return res.redirect("back");
   }
-
   if (!userId) {
     req.flash("error", "You must be logged in to book");
     return res.redirect("/login");
@@ -51,13 +50,19 @@ module.exports.createBooking = async (req, res) => {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
-    const booking = await Booking.findOneAndUpdate(
-      {
-        listing: listingId,
-        $or: [
-          { checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } }
-        ]
-      },
+    if (isNaN(checkInDate) || isNaN(checkOutDate) || checkInDate >= checkOutDate) {
+      req.flash("error", "Please select a valid date range");
+      return res.redirect(`/listings/${listingId}`);
+    }
+
+    const overlapFilter = {
+      listing: listingId,
+      checkIn: { $lt: checkOutDate },
+      checkOut: { $gt: checkInDate }
+    };
+
+    const result = await Booking.updateOne(
+      overlapFilter,
       {
         $setOnInsert: {
           listing: listingId,
@@ -66,16 +71,15 @@ module.exports.createBooking = async (req, res) => {
           checkOut: checkOutDate
         }
       },
-      { new: true, upsert: true,rawResult: true }
+      { upsert: true }
     );
 
-    // If a booking already existed (no new insert)
-     if (result.lastErrorObject.updatedExisting) {
-       req.flash("error", "Listing already booked for selected dates");
-       return res.redirect(`/listings/${listingId}`);
+    if (result.upsertedId) {
+      req.flash("success", "Booking confirmed!");
+    } else {
+      req.flash("error", "Listing already booked for selected dates");
     }
 
-    req.flash("success", "Booking confirmed!");
     return res.redirect(`/listings/${listingId}`);
   } catch (err) {
     console.error("Booking error:", err);
