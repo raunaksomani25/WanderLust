@@ -66,14 +66,14 @@ module.exports.createBooking = async (req, res) => {
           checkOut: checkOutDate
         }
       },
-      { new: true, upsert: true }
+      { new: true, upsert: true,rawResult: true }
     );
 
     // If a booking already existed (no new insert)
-    // if (!booking.isNew) {
-    //   req.flash("error", "Listing already booked for selected dates");
-    //   return res.redirect(`/listings/${listingId}`);
-    // }
+     if (result.lastErrorObject.updatedExisting) {
+       req.flash("error", "Listing already booked for selected dates");
+       return res.redirect(`/listings/${listingId}`);
+    }
 
     req.flash("success", "Booking confirmed!");
     return res.redirect(`/listings/${listingId}`);
