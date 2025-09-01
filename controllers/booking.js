@@ -50,13 +50,19 @@ module.exports.createBooking = async (req, res) => {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
-    const result = await Booking.findOneAndUpdate(
-      {
-        listing: listingId,
-        $or: [
-          { checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } }
-        ]
-      },
+    if (isNaN(checkInDate) || isNaN(checkOutDate) || checkInDate >= checkOutDate) {
+      req.flash("error", "Please select a valid date range");
+      return res.redirect(`/listings/${listingId}`);
+    }
+
+    const overlapFilter = {
+      listing: listingId,
+      checkIn: { $lt: checkOutDate },
+      checkOut: { $gt: checkInDate }
+    };
+
+    const result = await Booking.updateOne(
+      overlapFilter,
       {
         $setOnInsert: {
           listing: listingId,
@@ -65,18 +71,14 @@ module.exports.createBooking = async (req, res) => {
           checkOut: checkOutDate
         }
       },
-      {
-        upsert: true,
-        new: true,
-        rawResult: true // so we can inspect whether it was inserted
-      }
+      { upsert: true }
     );
 
-    if (result.lastErrorObject.upserted) {
-      // A brand new booking was inserted
+    if (result.upsertedId) {
+      // New booking created
       req.flash("success", "Booking confirmed!");
     } else {
-      // An existing overlapping booking matched
+      // Matched an existing overlapping booking
       req.flash("error", "Listing already booked for selected dates");
     }
 
@@ -87,9 +89,6 @@ module.exports.createBooking = async (req, res) => {
     return res.redirect(`/listings/${listingId}`);
   }
 };
-
-
-
 
 module.exports.viewBooking = async (req, res) => {
   const bookings = await Booking.find({ user: req.user._id }).populate("listing");
