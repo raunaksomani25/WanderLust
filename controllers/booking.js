@@ -50,19 +50,13 @@ module.exports.createBooking = async (req, res) => {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
-    if (isNaN(checkInDate) || isNaN(checkOutDate) || checkInDate >= checkOutDate) {
-      req.flash("error", "Please select a valid date range");
-      return res.redirect(`/listings/${listingId}`);
-    }
-
-    const overlapFilter = {
-      listing: listingId,
-      checkIn: { $lt: checkOutDate },
-      checkOut: { $gt: checkInDate }
-    };
-
-    const result = await Booking.updateOne(
-      overlapFilter,
+    const result = await Booking.findOneAndUpdate(
+      {
+        listing: listingId,
+        $or: [
+          { checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } }
+        ]
+      },
       {
         $setOnInsert: {
           listing: listingId,
@@ -71,12 +65,18 @@ module.exports.createBooking = async (req, res) => {
           checkOut: checkOutDate
         }
       },
-      { upsert: true }
+      {
+        upsert: true,
+        new: true,
+        rawResult: true // so we can inspect whether it was inserted
+      }
     );
 
-    if (result.upsertedId) {
+    if (result.lastErrorObject.upserted) {
+      // A brand new booking was inserted
       req.flash("success", "Booking confirmed!");
     } else {
+      // An existing overlapping booking matched
       req.flash("error", "Listing already booked for selected dates");
     }
 
