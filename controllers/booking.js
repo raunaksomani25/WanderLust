@@ -32,7 +32,7 @@ function normalizeDate(dateStr) {
   return date;
 }
 
-const mongoose = require("mongoose");
+
 
 module.exports.createBooking = async (req, res) => {
   const { checkIn, checkOut } = req.body;
