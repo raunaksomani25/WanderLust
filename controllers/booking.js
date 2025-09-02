@@ -33,7 +33,6 @@ function normalizeDate(dateStr) {
 }
 
 
-
 module.exports.createBooking = async (req, res) => {
   const { checkIn, checkOut } = req.body;
   const userId = req.user?._id;
@@ -48,57 +47,58 @@ module.exports.createBooking = async (req, res) => {
     return res.redirect("/login");
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
     if (isNaN(checkInDate) || isNaN(checkOutDate) || checkInDate >= checkOutDate) {
       req.flash("error", "Please select a valid date range");
-      await session.abortTransaction();
-      session.endSession();
       return res.redirect(`/listings/${listingId}`);
     }
 
-    // Check overlap inside the transaction
-    const existingBooking = await Booking.findOne({
+    const overlapFilter = {
       listing: listingId,
       checkIn: { $lt: checkOutDate },
       checkOut: { $gt: checkInDate }
-    }).session(session);
+    };
 
-    if (existingBooking) {
-      await session.abortTransaction();
-      session.endSession();
-      req.flash("error", "Listing already booked for selected dates");
-      return res.redirect(`/listings/${listingId}`);
+    const result = await Booking.updateOne(
+      overlapFilter,
+      {
+        $setOnInsert: {
+          listing: listingId,
+          user: userId,
+          checkIn: checkInDate,
+          checkOut: checkOutDate
+        }
+      },
+      { upsert: true }
+    );
+
+    if (result.upsertedId) {
+      
+      req.flash("success", "Booking confirmed!");
+    } else {
+      
+      const existing = await Booking.findOne(overlapFilter).lean();
+
+      if (existing && existing.user.toString() === userId.toString()) {
+       
+        req.flash("success", "Booking confirmed!");
+      } else {
+       
+        req.flash("error", "Listing already booked for selected dates");
+      }
     }
 
-    // No overlap -> save booking
-    const booking = new Booking({
-      listing: listingId,
-      user: userId,
-      checkIn: checkInDate,
-      checkOut: checkOutDate
-    });
-
-    await booking.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    req.flash("success", "Booking confirmed!");
     return res.redirect(`/listings/${listingId}`);
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
     console.error("Booking error:", err);
     req.flash("error", "Something went wrong, please try again");
     return res.redirect(`/listings/${listingId}`);
   }
 };
+
 
 
 module.exports.viewBooking = async (req, res) => {
